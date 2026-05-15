@@ -1,0 +1,123 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "NexusAdmin Storefront API",
+    "version": "1.0.0",
+    "description": "Public read+write API for storefronts. Bearer-token auth via API keys created in /settings/apikeys."
+  },
+  "servers": [{ "url": "http://localhost:3000/api/public/v1" }],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "API_KEY" }
+    },
+    "schemas": {
+      "Address": {
+        "type": "object",
+        "required": ["line1", "city", "country", "postalCode"],
+        "properties": {
+          "firstName": { "type": "string" },
+          "lastName": { "type": "string" },
+          "company": { "type": "string" },
+          "line1": { "type": "string" },
+          "line2": { "type": "string" },
+          "city": { "type": "string" },
+          "state": { "type": "string" },
+          "country": { "type": "string", "minLength": 2 },
+          "postalCode": { "type": "string" },
+          "phone": { "type": "string" }
+        }
+      },
+      "CheckoutRequest": {
+        "type": "object",
+        "required": ["customer", "items", "shippingAddress"],
+        "properties": {
+          "customer": {
+            "type": "object",
+            "required": ["email"],
+            "properties": {
+              "email": { "type": "string", "format": "email" },
+              "name": { "type": "string" },
+              "phone": { "type": "string" },
+              "acceptsMarketing": { "type": "boolean", "default": false }
+            }
+          },
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["variantId", "quantity"],
+              "properties": {
+                "variantId": { "type": "string" },
+                "quantity": { "type": "integer", "minimum": 1, "maximum": 999 }
+              }
+            }
+          },
+          "shippingAddress": { "$ref": "#/components/schemas/Address" },
+          "billingAddress": { "$ref": "#/components/schemas/Address" },
+          "couponCode": { "type": "string" },
+          "shippingAmount": { "type": "integer", "default": 0, "description": "Cents" },
+          "notes": { "type": "string" }
+        }
+      }
+    }
+  },
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/products": {
+      "get": {
+        "summary": "List active products",
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20, "maximum": 100 } },
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } },
+          { "name": "category", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "OK" },
+          "401": { "description": "Missing or invalid token" },
+          "403": { "description": "Missing scope products:read" }
+        }
+      }
+    },
+    "/products/{slug}": {
+      "get": {
+        "summary": "Get product detail",
+        "parameters": [{ "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/categories": {
+      "get": {
+        "summary": "List categories",
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/checkout": {
+      "post": {
+        "summary": "Create an order from a cart payload",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CheckoutRequest" } } }
+        },
+        "responses": {
+          "201": { "description": "Order created" },
+          "400": { "description": "Validation error" },
+          "409": { "description": "Out of stock" }
+        }
+      }
+    },
+    "/orders/{orderNumber}": {
+      "get": {
+        "summary": "Lookup an order (customer-facing tracking)",
+        "parameters": [
+          { "name": "orderNumber", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "email", "in": "query", "required": true, "schema": { "type": "string", "format": "email" } }
+        ],
+        "responses": {
+          "200": { "description": "OK" },
+          "404": { "description": "Not found or email mismatch" }
+        }
+      }
+    }
+  }
+}

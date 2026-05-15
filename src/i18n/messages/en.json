@@ -1,0 +1,25 @@
+{
+  "app": {
+    "name": "NexusAdmin",
+    "tagline": "The complete commerce control center"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "loading": "Loading…",
+    "noResults": "No results."
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "products": "Products",
+    "orders": "Orders",
+    "customers": "Customers",
+    "promotions": "Promotions",
+    "analytics": "Analytics",
+    "payments": "Payments",
+    "settings": "Settings"
+  }
+}

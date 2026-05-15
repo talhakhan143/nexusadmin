@@ -1,0 +1,9 @@
+prisma/dev.db
+prisma/dev.db-journal
+prisma/migrations/dev.db*
+public/uploads
+.env
+.env.local
+.env*.local
+scripts
+*.log

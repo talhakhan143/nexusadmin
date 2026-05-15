@@ -1,0 +1,56 @@
+{
+  "info": {
+    "name": "NexusAdmin Storefront API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{API_KEY}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "http://localhost:3000/api/public/v1" },
+    { "key": "API_KEY", "value": "nx_live_REPLACE_ME" }
+  ],
+  "item": [
+    {
+      "name": "List products",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/products?limit=20"
+      }
+    },
+    {
+      "name": "Product detail",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/products/wireless-nc-headphones"
+      }
+    },
+    {
+      "name": "List categories",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/categories"
+      }
+    },
+    {
+      "name": "Create checkout",
+      "request": {
+        "method": "POST",
+        "url": "{{BASE_URL}}/checkout",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"customer\": { \"email\": \"buyer@example.com\", \"name\": \"Buyer\", \"acceptsMarketing\": true },\n  \"items\": [ { \"variantId\": \"REPLACE_VARIANT_ID\", \"quantity\": 1 } ],\n  \"shippingAddress\": {\n    \"firstName\": \"Buyer\", \"line1\": \"100 Main St\",\n    \"city\": \"New York\", \"state\": \"NY\", \"country\": \"US\", \"postalCode\": \"10001\"\n  },\n  \"couponCode\": \"WELCOME10\",\n  \"shippingAmount\": 500\n}"
+        }
+      }
+    },
+    {
+      "name": "Order tracking",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/orders/NX-2026-XXXXX?email=buyer@example.com"
+      }
+    }
+  ]
+}
