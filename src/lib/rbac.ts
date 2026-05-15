@@ -15,7 +15,9 @@ export type Permission =
   | "promotions:write"
   | "analytics:read"
   | "settings:manage"
-  | "apikeys:manage";
+  | "apikeys:manage"
+  | "banners:read"
+  | "banners:write";
 
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   SUPER_ADMIN: [
@@ -34,6 +36,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "analytics:read",
     "settings:manage",
     "apikeys:manage",
+    "banners:read",
+    "banners:write",
   ],
   ADMIN: [
     "store:manage",
@@ -49,6 +53,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "promotions:write",
     "analytics:read",
     "settings:manage",
+    "banners:read",
+    "banners:write",
   ],
   MANAGER: [
     "products:read",
@@ -60,6 +66,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "promotions:read",
     "promotions:write",
     "analytics:read",
+    "banners:read",
+    "banners:write",
   ],
   VIEWER: [
     "products:read",
@@ -67,6 +75,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "customers:read",
     "promotions:read",
     "analytics:read",
+    "banners:read",
   ],
 };
 

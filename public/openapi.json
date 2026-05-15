@@ -118,6 +118,39 @@
           "404": { "description": "Not found or email mismatch" }
         }
       }
+    },
+    "/banners": {
+      "get": {
+        "summary": "List active banners for a placement key",
+        "description": "Storefronts call this with a placement key. Layout/styling is the storefront's concern. For CUSTOM placement, also pass customKey.",
+        "parameters": [
+          {
+            "name": "placement",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "HOMEPAGE_HERO",
+                "HOMEPAGE_SECONDARY",
+                "HOMEPAGE_FOOTER",
+                "CATEGORY_TOP",
+                "PRODUCT_DETAIL_SIDE",
+                "CART_SIDEBAR",
+                "CHECKOUT_TOP",
+                "POPUP",
+                "CUSTOM"
+              ]
+            }
+          },
+          { "name": "customKey", "in": "query", "schema": { "type": "string" }, "description": "Required when placement=CUSTOM" }
+        ],
+        "responses": {
+          "200": { "description": "OK" },
+          "400": { "description": "Missing or invalid placement / customKey" },
+          "403": { "description": "Missing scope banners:read" }
+        }
+      }
     }
   }
 }

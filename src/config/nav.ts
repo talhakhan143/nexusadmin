@@ -8,6 +8,7 @@ import {
   CreditCard,
   Settings,
   Boxes,
+  ImageIcon,
   type LucideIcon,
 } from "lucide-react";
 import type { Permission } from "@/lib/rbac";
@@ -43,6 +44,7 @@ export const NAV: NavGroup[] = [
       { title: "Orders", href: "/orders", icon: ShoppingCart, permission: "orders:read" },
       { title: "Customers", href: "/customers", icon: Users, permission: "customers:read" },
       { title: "Promotions", href: "/promotions", icon: Tag, permission: "promotions:read" },
+      { title: "Banners", href: "/banners", icon: ImageIcon, permission: "banners:read" },
     ],
   },
   {

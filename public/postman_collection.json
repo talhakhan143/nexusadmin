@@ -51,6 +51,20 @@
         "method": "GET",
         "url": "{{BASE_URL}}/orders/NX-2026-XXXXX?email=buyer@example.com"
       }
+    },
+    {
+      "name": "Banners — homepage hero",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/banners?placement=HOMEPAGE_HERO"
+      }
+    },
+    {
+      "name": "Banners — custom slot",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/banners?placement=CUSTOM&customKey=black-friday-strip"
+      }
     }
   ]
 }

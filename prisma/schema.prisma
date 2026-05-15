@@ -164,6 +164,7 @@ model Category {
 
   products       Product[]
   couponTargets  CouponCategory[]
+  banners        Banner[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -209,6 +210,7 @@ model Product {
   orderItems      OrderItem[]
   couponTargets   CouponProduct[]
   flashSales      FlashSaleProduct[]
+  banners         Banner[]
 
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -618,4 +620,65 @@ model AuditLog {
   @@index([userId])
   @@index([entity, entityId])
   @@index([createdAt])
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// BANNERS — promotional content for storefronts
+// Storefronts fetch by `placement` key. Layout/styling is the storefront's
+// concern — this admin owns content + scheduling + targeting only.
+// ══════════════════════════════════════════════════════════════════════
+
+enum BannerPlacement {
+  HOMEPAGE_HERO        // top-of-homepage carousel slot
+  HOMEPAGE_SECONDARY   // mid-homepage strip / featured row
+  HOMEPAGE_FOOTER      // bottom-of-homepage strip
+  CATEGORY_TOP         // banner above category listing
+  PRODUCT_DETAIL_SIDE  // sidebar on product detail page
+  CART_SIDEBAR         // upsell strip in cart
+  CHECKOUT_TOP         // notice above checkout form
+  POPUP                // modal banner (storefront decides trigger)
+  CUSTOM               // free-form, identified by customKey
+}
+
+model Banner {
+  id          String          @id @default(cuid())
+  name        String          // admin label, not shown to shoppers
+  placement   BannerPlacement
+  customKey   String?         // only used when placement = CUSTOM (slug-style)
+
+  // Content shown to shoppers
+  title       String?
+  subtitle    String?
+  ctaText     String?         // e.g. "Shop now"
+  ctaUrl      String?         // optional separate URL for CTA button
+
+  // Visuals (URLs)
+  image        String         // primary / desktop image
+  imageMobile  String?        // optional mobile-optimized version
+  alt          String?
+
+  // Optional theming overrides (storefront may use or ignore)
+  bgColor     String?         // hex e.g. "#0f172a"
+  textColor   String?
+
+  // Whole-banner click target (overridden by ctaUrl when present)
+  linkUrl     String?
+
+  // Optional in-store targeting — storefront can resolve to a route
+  targetCategoryId String?
+  targetProductId  String?
+  targetCategory   Category? @relation(fields: [targetCategoryId], references: [id], onDelete: SetNull)
+  targetProduct    Product?  @relation(fields: [targetProductId], references: [id], onDelete: SetNull)
+
+  // Scheduling + ordering
+  startsAt    DateTime?
+  endsAt      DateTime?
+  position    Int             @default(0)
+  isActive    Boolean         @default(true)
+
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([placement, isActive, position])
+  @@index([startsAt, endsAt])
 }

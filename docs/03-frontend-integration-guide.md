@@ -473,6 +473,183 @@ export default async function OrderTracking({
 
 ---
 
+## Banners — content slots controlled by the admin
+
+The admin owns banner **content + scheduling**; your storefront owns **layout + styling**. The contract between the two is the `placement` key.
+
+### Available placements
+
+| Key | Typical use |
+|---|---|
+| `HOMEPAGE_HERO` | Top-of-homepage carousel slot |
+| `HOMEPAGE_SECONDARY` | Mid-homepage strip / featured row |
+| `HOMEPAGE_FOOTER` | Bottom-of-homepage strip |
+| `CATEGORY_TOP` | Banner above category listing |
+| `PRODUCT_DETAIL_SIDE` | Sidebar on product detail page |
+| `CART_SIDEBAR` | Upsell strip in cart |
+| `CHECKOUT_TOP` | Notice above checkout form |
+| `POPUP` | Modal banner — storefront decides trigger |
+| `CUSTOM` | Free-form slot, identified by `customKey` |
+
+### Add to the typed client
+
+```ts
+// lib/nexus.ts (add to the existing file)
+
+export type BannerPlacement =
+  | "HOMEPAGE_HERO" | "HOMEPAGE_SECONDARY" | "HOMEPAGE_FOOTER"
+  | "CATEGORY_TOP" | "PRODUCT_DETAIL_SIDE"
+  | "CART_SIDEBAR" | "CHECKOUT_TOP" | "POPUP" | "CUSTOM";
+
+export interface Banner {
+  id: string;
+  name: string;
+  placement: BannerPlacement;
+  customKey: string | null;
+  title: string | null;
+  subtitle: string | null;
+  ctaText: string | null;
+  ctaUrl: string | null;
+  image: string;
+  imageMobile: string | null;
+  alt: string | null;
+  bgColor: string | null;
+  textColor: string | null;
+  linkUrl: string | null;
+  targetCategory: { slug: string; name: string } | null;
+  targetProduct: { slug: string; name: string } | null;
+  position: number;
+}
+
+// Add to nexus object:
+//
+//   listBanners: (placement: BannerPlacement, customKey?: string) => {
+//     const q = new URLSearchParams({ placement });
+//     if (customKey) q.set("customKey", customKey);
+//     return call<{ items: Banner[] }>(`/banners?${q}`);
+//   },
+```
+
+### Render a homepage hero (carousel)
+
+```tsx
+// app/page.tsx — storefront homepage
+import { nexus } from "@/lib/nexus";
+import { HeroCarousel } from "./HeroCarousel";
+
+export default async function HomePage() {
+  const [{ items: heros }, { items: products }] = await Promise.all([
+    nexus.listBanners("HOMEPAGE_HERO"),
+    nexus.listProducts({ limit: 12 }),
+  ]);
+
+  return (
+    <main>
+      {heros.length > 0 && <HeroCarousel banners={heros} />}
+      {/* …product grid… */}
+    </main>
+  );
+}
+```
+
+```tsx
+// app/HeroCarousel.tsx
+"use client";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import type { Banner } from "@/lib/nexus";
+
+export function HeroCarousel({ banners }: { banners: Banner[] }) {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (banners.length < 2) return;
+    const t = setInterval(() => setI((p) => (p + 1) % banners.length), 5000);
+    return () => clearInterval(t);
+  }, [banners.length]);
+
+  const b = banners[i];
+  // Resolve link target — explicit linkUrl > target product > target category > ctaUrl
+  const href =
+    b.linkUrl ??
+    (b.targetProduct ? `/products/${b.targetProduct.slug}` : null) ??
+    (b.targetCategory ? `/categories/${b.targetCategory.slug}` : null) ??
+    b.ctaUrl ??
+    "#";
+
+  return (
+    <section
+      className="relative w-full h-[60vh] flex items-center justify-center overflow-hidden"
+      style={{ backgroundColor: b.bgColor ?? undefined, color: b.textColor ?? undefined }}
+    >
+      <Link href={href} className="absolute inset-0">
+        {/* Mobile vs desktop image */}
+        <picture>
+          {b.imageMobile && <source media="(max-width: 640px)" srcSet={b.imageMobile} />}
+          <img src={b.image} alt={b.alt ?? b.title ?? ""} className="w-full h-full object-cover" />
+        </picture>
+        {(b.title || b.subtitle) && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+            {b.title && <h1 className="text-4xl sm:text-6xl font-bold mb-3">{b.title}</h1>}
+            {b.subtitle && <p className="text-lg sm:text-2xl opacity-90 max-w-2xl">{b.subtitle}</p>}
+            {b.ctaText && (
+              <span className="mt-6 inline-block px-6 py-3 rounded-md bg-white text-black font-medium">
+                {b.ctaText}
+              </span>
+            )}
+          </div>
+        )}
+      </Link>
+
+      {/* Pagination dots */}
+      {banners.length > 1 && (
+        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
+          {banners.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setI(idx)}
+              className={`h-2 w-2 rounded-full ${idx === i ? "bg-white" : "bg-white/40"}`}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+```
+
+### Other placements — your layout choice
+
+Each storefront decides how to render. A few patterns:
+
+```tsx
+// HOMEPAGE_SECONDARY — single full-width strip
+const { items } = await nexus.listBanners("HOMEPAGE_SECONDARY");
+const b = items[0]; // or render all stacked
+
+// CATEGORY_TOP — show on category pages
+const { items } = await nexus.listBanners("CATEGORY_TOP");
+
+// CART_SIDEBAR — small upsell card
+const { items } = await nexus.listBanners("CART_SIDEBAR");
+
+// POPUP — modal triggered after delay or on exit-intent
+const { items } = await nexus.listBanners("POPUP");
+// Then your client component decides when to show it
+
+// CUSTOM — your own keys
+const { items } = await nexus.listBanners("CUSTOM", "black-friday-strip");
+```
+
+### Why this design
+
+- **Multiple storefronts** can consume the same admin. Each frontend renders the same `HOMEPAGE_HERO` payload differently — one as carousel, another as side-by-side cards — without any backend change.
+- **Marketing team** updates banners + scheduling without touching code or asking developers.
+- **Scheduling is server-side**: `startsAt`/`endsAt` filter automatically. The storefront just asks "what's live now?" and gets back the right list.
+- **Targeting baked in**: `targetProduct`/`targetCategory` come back resolved with slugs, so the storefront builds the right URL.
+- **Theming overrides optional**: `bgColor` + `textColor` let marketing pick brand colors per banner; the storefront can apply or ignore.
+
+---
+
 ## Coupon validation (optional pre-checkout preview)
 
 Add a server action that previews discount before submission:

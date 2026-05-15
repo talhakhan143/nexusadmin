@@ -49,6 +49,7 @@ const AVAILABLE_SCOPES = [
   "orders:write",
   "customers:read",
   "promotions:read",
+  "banners:read",
 ];
 
 export function ApiKeysPanel({ keys }: { keys: ApiKeyRow[] }) {
