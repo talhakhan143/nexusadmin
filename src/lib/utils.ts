@@ -5,15 +5,24 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+const NO_DECIMAL_CURRENCIES = new Set(["PKR", "JPY", "KRW", "VND", "IDR"]);
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  PKR: "Rs", USD: "$", EUR: "€", GBP: "£", INR: "₹", AED: "د.إ",
+};
+
 export function formatCurrency(
   amountInMinorUnits: number,
   currency = "USD",
   locale = "en-US"
 ): string {
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency,
-  }).format(amountInMinorUnits / 100);
+  const noDecimal = NO_DECIMAL_CURRENCIES.has(currency.toUpperCase());
+  const amount = amountInMinorUnits / 100;
+  const symbol = CURRENCY_SYMBOLS[currency.toUpperCase()] ?? currency;
+  const formatted = amount.toLocaleString(locale, {
+    minimumFractionDigits: noDecimal ? 0 : 2,
+    maximumFractionDigits: noDecimal ? 0 : 2,
+  });
+  return `${symbol} ${formatted}`;
 }
 
 export function formatDate(date: Date | string, locale = "en-US"): string {

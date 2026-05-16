@@ -43,7 +43,7 @@ export default async function ProductsPage({
     ...(query.categoryId && { categoryId: query.categoryId }),
   };
 
-  const [products, total] = await Promise.all([
+  const [products, total, store] = await Promise.all([
     db.product.findMany({
       where,
       orderBy: { [query.sort]: query.order },
@@ -56,8 +56,10 @@ export default async function ProductsPage({
       },
     }),
     db.product.count({ where }),
+    db.store.findFirst({ select: { currency: true } }),
   ]);
 
+  const currency = store?.currency ?? "USD";
   const rows = products.map((p) => ({
     id: p.id,
     name: p.name,
@@ -65,7 +67,7 @@ export default async function ProductsPage({
     sku: p.sku ?? "—",
     category: p.category?.name ?? "—",
     status: p.status as "ACTIVE" | "DRAFT" | "ARCHIVED",
-    price: formatCurrency(p.basePrice),
+    price: formatCurrency(p.basePrice, currency),
     stock: p.variants.reduce((s, v) => s + v.stock, 0),
     variants: p._count.variants,
     createdAt: formatDate(p.createdAt),

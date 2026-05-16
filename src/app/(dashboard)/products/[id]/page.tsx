@@ -11,7 +11,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   const session = await auth();
   if (!can(session?.user?.role, "products:write")) redirect("/products");
 
-  const [product, categories, tags] = await Promise.all([
+  const [product, categories, tags, store] = await Promise.all([
     db.product.findUnique({
       where: { id },
       include: {
@@ -25,6 +25,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     }),
     db.category.findMany({ select: { id: true, name: true, parentId: true } }),
     db.tag.findMany({ select: { id: true, name: true } }),
+    db.store.findFirst({ select: { currency: true } }),
   ]);
 
   if (!product) notFound();
@@ -65,5 +66,14 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     tagIds: product.tags.map((t) => t.tagId),
   };
 
-  return <ProductForm mode="edit" productId={id} initial={initial} categories={categories} tags={tags} />;
+  return (
+    <ProductForm
+      mode="edit"
+      productId={id}
+      initial={initial}
+      categories={categories}
+      tags={tags}
+      currency={store?.currency ?? "USD"}
+    />
+  );
 }

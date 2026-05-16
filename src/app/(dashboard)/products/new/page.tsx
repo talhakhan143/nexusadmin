@@ -10,10 +10,18 @@ export default async function NewProductPage() {
   const session = await auth();
   if (!can(session?.user?.role, "products:write")) redirect("/products");
 
-  const [categories, tags] = await Promise.all([
+  const [categories, tags, store] = await Promise.all([
     db.category.findMany({ select: { id: true, name: true, parentId: true } }),
     db.tag.findMany({ select: { id: true, name: true } }),
+    db.store.findFirst({ select: { currency: true } }),
   ]);
 
-  return <ProductForm mode="create" categories={categories} tags={tags} />;
+  return (
+    <ProductForm
+      mode="create"
+      categories={categories}
+      tags={tags}
+      currency={store?.currency ?? "USD"}
+    />
+  );
 }

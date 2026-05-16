@@ -8,6 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { VariantInput } from "@/lib/validations/product";
+import {
+  currencyConfig,
+  toMinor,
+  toMajor,
+  compareAtFromDiscount,
+  discountFromCompareAt,
+} from "@/lib/admin-currency";
 
 export interface OptionDef {
   name: string;          // e.g. "Color"
@@ -15,16 +22,18 @@ export interface OptionDef {
 }
 
 interface VariantsEditorProps {
-  basePrice: number;     // dollars (UI-side)
+  basePrice: number;     // major units (UI-side)
   variants: VariantInput[];
   onChange: (variants: VariantInput[]) => void;
+  currency?: string;
 }
 
 /**
  * Combines option definitions to generate a variant matrix, then lets the user
- * tweak per-row price (in dollars), stock, SKU. Stores prices as integer cents.
+ * tweak per-row price, stock, SKU. Stores prices as integer minor units.
  */
-export function VariantsEditor({ basePrice, variants, onChange }: VariantsEditorProps) {
+export function VariantsEditor({ basePrice, variants, onChange, currency = "USD" }: VariantsEditorProps) {
+  const cfg = currencyConfig(currency);
   const [optionDefs, setOptionDefs] = React.useState<OptionDef[]>(() => {
     // Reconstruct option defs from current variants
     const map = new Map<string, Set<string>>();
@@ -76,7 +85,7 @@ export function VariantsEditor({ basePrice, variants, onChange }: VariantsEditor
         onChange([
           {
             name: "Default",
-            price: Math.round(basePrice * 100),
+            price: toMinor(basePrice, currency),
             stock: 0,
             lowStockThreshold: 5,
             position: 0,
@@ -177,57 +186,108 @@ export function VariantsEditor({ basePrice, variants, onChange }: VariantsEditor
             <thead className="bg-muted/40 text-xs text-muted-foreground">
               <tr>
                 <th className="text-left p-2">Variant</th>
-                <th className="text-left p-2 w-32">Price ($)</th>
-                <th className="text-left p-2 w-24">Stock</th>
-                <th className="text-left p-2 w-24">Low @</th>
+                <th className="text-left p-2 w-28">Price ({cfg.symbol})</th>
+                <th className="text-left p-2 w-28">Compare-at ({cfg.symbol})</th>
+                <th className="text-left p-2 w-20">Off %</th>
+                <th className="text-left p-2 w-20">Stock</th>
+                <th className="text-left p-2 w-20">Low @</th>
                 <th className="text-left p-2 w-32">SKU</th>
+                <th className="text-left p-2 w-20">Status</th>
               </tr>
             </thead>
             <tbody>
-              {variants.map((v, idx) => (
-                <tr key={idx} className="border-t">
-                  <td className="p-2">
-                    <span className="font-medium">{v.name || "—"}</span>
-                  </td>
-                  <td className="p-2">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={(v.price / 100).toString()}
-                      onChange={(e) => updateRow(idx, { price: Math.round(Number(e.target.value || 0) * 100) })}
-                      className="h-8"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <Input
-                      type="number"
-                      min="0"
-                      value={v.stock}
-                      onChange={(e) => updateRow(idx, { stock: Number(e.target.value || 0) })}
-                      className="h-8"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <Input
-                      type="number"
-                      min="0"
-                      value={v.lowStockThreshold}
-                      onChange={(e) => updateRow(idx, { lowStockThreshold: Number(e.target.value || 0) })}
-                      className="h-8"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <Input
-                      value={v.sku ?? ""}
-                      onChange={(e) => updateRow(idx, { sku: e.target.value })}
-                      className="h-8 font-mono text-xs"
-                    />
-                  </td>
-                </tr>
-              ))}
+              {variants.map((v, idx) => {
+                const compareAt = v.compareAtPrice ?? 0;
+                const off = discountFromCompareAt(v.price, compareAt);
+                const soldOut = v.stock <= 0;
+                return (
+                  <tr key={idx} className="border-t">
+                    <td className="p-2">
+                      <span className="font-medium">{v.name || "—"}</span>
+                    </td>
+                    <td className="p-2">
+                      <Input
+                        type="number"
+                        step={cfg.decimals === 0 ? "1" : "0.01"}
+                        min="0"
+                        value={toMajor(v.price, currency).toString()}
+                        onChange={(e) => updateRow(idx, { price: toMinor(Number(e.target.value || 0), currency) })}
+                        className="h-8"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <Input
+                        type="number"
+                        step={cfg.decimals === 0 ? "1" : "0.01"}
+                        min="0"
+                        placeholder="—"
+                        value={compareAt ? toMajor(compareAt, currency).toString() : ""}
+                        onChange={(e) =>
+                          updateRow(idx, {
+                            compareAtPrice: e.target.value ? toMinor(Number(e.target.value), currency) : null,
+                          })
+                        }
+                        className="h-8"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="99"
+                        placeholder="0"
+                        value={off || ""}
+                        onChange={(e) => {
+                          const pct = Number(e.target.value || 0);
+                          updateRow(idx, {
+                            compareAtPrice: pct > 0 && v.price ? compareAtFromDiscount(v.price, pct) : null,
+                          });
+                        }}
+                        className="h-8"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <Input
+                        type="number"
+                        min="0"
+                        value={v.stock}
+                        onChange={(e) => updateRow(idx, { stock: Number(e.target.value || 0) })}
+                        className={`h-8 ${soldOut ? "border-destructive/40 bg-destructive/5" : ""}`}
+                      />
+                    </td>
+                    <td className="p-2">
+                      <Input
+                        type="number"
+                        min="0"
+                        value={v.lowStockThreshold}
+                        onChange={(e) => updateRow(idx, { lowStockThreshold: Number(e.target.value || 0) })}
+                        className="h-8"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <Input
+                        value={v.sku ?? ""}
+                        onChange={(e) => updateRow(idx, { sku: e.target.value })}
+                        className="h-8 font-mono text-xs"
+                      />
+                    </td>
+                    <td className="p-2">
+                      {soldOut ? (
+                        <Badge variant="destructive" className="text-[10px]">Sold out</Badge>
+                      ) : v.stock <= v.lowStockThreshold ? (
+                        <Badge variant="secondary" className="text-[10px]">Low</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px]">In stock</Badge>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+          <p className="px-3 py-2 text-[11px] text-muted-foreground border-t bg-muted/20">
+            Set Stock to <strong>0</strong> to mark a variant as sold out. The storefront will hide its Add-to-cart button automatically.
+          </p>
         </div>
       )}
     </div>

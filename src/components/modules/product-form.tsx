@@ -28,6 +28,14 @@ import { productSchema, type ProductInput } from "@/lib/validations/product";
 import { createProduct, updateProduct } from "@/server/actions/products";
 import { createTag } from "@/server/actions/categories";
 import { slugify } from "@/lib/utils";
+import {
+  currencyConfig,
+  toMinor,
+  toMajor,
+  formatMinor,
+  compareAtFromDiscount,
+  discountFromCompareAt,
+} from "@/lib/admin-currency";
 
 interface ProductFormProps {
   initial?: ProductInput & { id?: string };
@@ -35,6 +43,8 @@ interface ProductFormProps {
   tags: TagOption[];
   mode: "create" | "edit";
   productId?: string;
+  /** Store currency code (e.g. "PKR", "USD"). Drives all price labels + decimals. */
+  currency?: string;
 }
 
 const DEFAULT: ProductInput = {
@@ -60,10 +70,11 @@ const DEFAULT: ProductInput = {
   tagIds: [],
 };
 
-export function ProductForm({ initial, categories, tags, mode, productId }: ProductFormProps) {
+export function ProductForm({ initial, categories, tags, mode, productId, currency = "USD" }: ProductFormProps) {
   const router = useRouter();
   const [submitting, setSubmitting] = React.useState(false);
   const [availableTags, setAvailableTags] = React.useState<TagOption[]>(tags);
+  const cfg = currencyConfig(currency);
 
   const {
     register,
@@ -207,56 +218,117 @@ export function ProductForm({ initial, categories, tags, mode, productId }: Prod
           <Card>
             <CardHeader>
               <CardTitle>Pricing</CardTitle>
-              <CardDescription>Stored as integer cents. Display in dollars.</CardDescription>
+              <CardDescription>
+                Currency: <strong>{currency}</strong> · {cfg.decimals === 0 ? "Whole units only (no paise)" : "Two-decimal precision"}.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="basePrice">Base price ($) *</Label>
+                  <Label htmlFor="basePrice">Selling price ({cfg.symbol}) *</Label>
                   <Input
                     id="basePrice"
                     type="number"
-                    step="0.01"
+                    step={cfg.decimals === 0 ? "1" : "0.01"}
                     min="0"
-                    value={(basePriceCents / 100 || 0).toString()}
-                    onChange={(e) => setValue("basePrice", Math.round(Number(e.target.value || 0) * 100))}
+                    value={(toMajor(basePriceCents, currency) || 0).toString()}
+                    onChange={(e) => setValue("basePrice", toMinor(Number(e.target.value || 0), currency))}
                   />
+                  <p className="text-[11px] text-muted-foreground">What customers pay.</p>
                   {errors.basePrice && <p className="text-xs text-destructive">{errors.basePrice.message}</p>}
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="compareAt">Compare-at ($)</Label>
+                  <Label htmlFor="discountPct">Discount %</Label>
+                  <Input
+                    id="discountPct"
+                    type="number"
+                    min="0"
+                    max="99"
+                    step="1"
+                    placeholder="0"
+                    value={discountFromCompareAt(basePriceCents, compareAtCents ?? 0) || ""}
+                    onChange={(e) => {
+                      const pct = Number(e.target.value || 0);
+                      if (pct <= 0 || !basePriceCents) {
+                        setValue("compareAtPrice", null, { shouldDirty: true });
+                      } else {
+                        setValue("compareAtPrice", compareAtFromDiscount(basePriceCents, pct), { shouldDirty: true });
+                      }
+                    }}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Sale badge on storefront. Auto-fills the original price.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="compareAt">Original price ({cfg.symbol})</Label>
                   <Input
                     id="compareAt"
                     type="number"
-                    step="0.01"
+                    step={cfg.decimals === 0 ? "1" : "0.01"}
                     min="0"
-                    value={compareAtCents ? (compareAtCents / 100).toString() : ""}
+                    placeholder="0"
+                    value={compareAtCents ? toMajor(compareAtCents, currency).toString() : ""}
                     onChange={(e) =>
-                      setValue("compareAtPrice", e.target.value ? Math.round(Number(e.target.value) * 100) : null)
+                      setValue("compareAtPrice", e.target.value ? toMinor(Number(e.target.value), currency) : null, { shouldDirty: true })
                     }
                   />
+                  <p className="text-[11px] text-muted-foreground">Shown crossed-out next to the sale price.</p>
                 </div>
+              </div>
+
+              {compareAtCents && compareAtCents > basePriceCents && (
+                <div className="rounded-md bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm text-emerald-900 flex items-center gap-2">
+                  <span className="font-medium">Sale preview:</span>
+                  <span className="line-through opacity-70">{formatMinor(compareAtCents, currency)}</span>
+                  <span className="font-semibold">{formatMinor(basePriceCents, currency)}</span>
+                  <span className="ml-auto bg-emerald-700 text-white text-xs px-2 py-0.5 rounded">
+                    −{discountFromCompareAt(basePriceCents, compareAtCents)}% off
+                  </span>
+                </div>
+              )}
+
+              <div className="grid sm:grid-cols-2 gap-4 pt-2 border-t">
                 <div className="space-y-2">
-                  <Label htmlFor="costPrice">Cost ($)</Label>
+                  <Label htmlFor="costPrice">Cost per unit ({cfg.symbol})</Label>
                   <Input
                     id="costPrice"
                     type="number"
-                    step="0.01"
+                    step={cfg.decimals === 0 ? "1" : "0.01"}
                     min="0"
-                    value={costPriceCents ? (costPriceCents / 100).toString() : ""}
+                    value={costPriceCents ? toMajor(costPriceCents, currency).toString() : ""}
                     onChange={(e) =>
-                      setValue("costPrice", e.target.value ? Math.round(Number(e.target.value) * 100) : null)
+                      setValue("costPrice", e.target.value ? toMinor(Number(e.target.value), currency) : null)
                     }
                   />
+                  <p className="text-[11px] text-muted-foreground">Internal — never shown to customers. Used for profit reports.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Margin</Label>
+                  {basePriceCents && costPriceCents ? (
+                    <div className="h-10 flex items-center px-3 border rounded-md bg-muted/40 text-sm">
+                      <strong>{formatMinor(basePriceCents - costPriceCents, currency)}</strong>
+                      <span className="ml-2 text-muted-foreground">
+                        ({Math.round(((basePriceCents - costPriceCents) / basePriceCents) * 100)}%)
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="h-10 flex items-center px-3 border rounded-md bg-muted/20 text-sm text-muted-foreground">
+                      Set selling price + cost to see margin
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+
+              <div className="flex items-center gap-2 pt-2">
                 <Controller
                   name="taxable"
                   control={control}
                   render={({ field }) => <Switch checked={field.value} onCheckedChange={field.onChange} />}
                 />
-                <Label>Taxable</Label>
+                <Label>Charge tax on this product</Label>
               </div>
             </CardContent>
           </Card>
@@ -273,7 +345,8 @@ export function ProductForm({ initial, categories, tags, mode, productId }: Prod
             </CardHeader>
             <CardContent>
               <VariantsEditor
-                basePrice={basePriceCents / 100}
+                basePrice={toMajor(basePriceCents, currency)}
+                currency={currency}
                 variants={variants}
                 onChange={(v) => setValue("variants", v, { shouldDirty: true })}
               />
