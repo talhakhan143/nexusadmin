@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 36 30% 97%;
+    --foreground: 20 14% 8%;
+    --card: 0 0% 100%;
+    --card-foreground: 20 14% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 14% 8%;
+    --primary: 20 14% 12%;
+    --primary-foreground: 36 30% 97%;
+    --secondary: 36 20% 92%;
+    --secondary-foreground: 20 14% 12%;
+    --muted: 36 20% 94%;
+    --muted-foreground: 20 8% 40%;
+    --accent: 36 60% 52%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 70% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 30 15% 86%;
+    --input: 30 15% 86%;
+    --ring: 36 60% 52%;
+    --radius: 0.25rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4, h5 {
+    @apply font-serif font-medium tracking-tight;
+  }
+}
+
+@layer components {
+  .container-tight {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-eyebrow {
+    @apply inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.3em] text-muted-foreground;
+  }
+
+  .section-eyebrow::before {
+    content: "";
+    @apply h-px w-8 bg-gold;
+  }
+
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
+
+  .price-strike {
+    @apply text-muted-foreground line-through text-sm;
+  }
+
+  .price-sale {
+    @apply text-destructive font-semibold;
+  }
+
+  /* Product card image zoom on hover */
+  .product-img-wrap {
+    @apply relative overflow-hidden bg-secondary;
+  }
+  .product-img-wrap img {
+    @apply transition-transform duration-700;
+  }
+  .group:hover .product-img-wrap img {
+    @apply scale-110;
+  }
+
+  /* Premium underline link */
+  .link-underline {
+    @apply relative inline-flex items-center;
+  }
+  .link-underline::after {
+    content: "";
+    @apply absolute left-0 bottom-0 h-px w-full origin-right scale-x-0 bg-current transition-transform duration-500;
+  }
+  .link-underline:hover::after {
+    @apply origin-left scale-x-100;
+  }
+}
+
+/* Marquee wrapper for promo strip */
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 30s linear infinite;
+}
+
+/* Subtle paper grain */
+.grain {
+  background-image: radial-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+  background-size: 3px 3px;
+}

@@ -384,6 +384,9 @@ enum PaymentMethod {
   PAYPAL
   COD
   BANK_TRANSFER
+  JAZZCASH
+  EASYPAISA
+  CARD
   OTHER
 }
 

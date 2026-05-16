@@ -37,8 +37,10 @@ export interface CheckoutResult {
   ref: string; // provider-side session/intent id
 }
 
+export type PaymentProviderName = "stripe" | "paypal" | "jazzcash" | "easypaisa" | "card" | "cod";
+
 export interface PaymentProvider {
-  readonly name: "stripe" | "paypal";
+  readonly name: PaymentProviderName;
   isConfigured(): boolean;
   createCheckout(input: CreateCheckoutInput): Promise<CheckoutResult>;
   refund(ref: string, amount: number): Promise<{ ok: boolean; ref?: string; error?: string }>;

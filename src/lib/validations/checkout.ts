@@ -18,6 +18,9 @@ export const checkoutItemSchema = z.object({
   quantity: z.number().int().positive().max(999),
 });
 
+export const paymentMethodEnum = z.enum(["COD", "JAZZCASH", "EASYPAISA", "CARD", "STRIPE"]);
+export type PaymentMethod = z.infer<typeof paymentMethodEnum>;
+
 export const checkoutSchema = z.object({
   customer: z.object({
     email: z.string().email(),
@@ -31,5 +34,6 @@ export const checkoutSchema = z.object({
   couponCode: z.string().optional().nullable(),
   shippingAmount: z.number().int().nonnegative().default(0),
   notes: z.string().max(500).optional().nullable(),
+  paymentMethod: paymentMethodEnum.optional().default("COD"),
 });
 export type CheckoutInput = z.infer<typeof checkoutSchema>;

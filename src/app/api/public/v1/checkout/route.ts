@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { verifyApiKey, withRateHeaders } from "@/server/api-auth";
 import { checkoutSchema } from "@/lib/validations/checkout";
 import { generateOrderNumber } from "@/lib/utils";
+import { getProvider } from "@/server/payments";
 
 /**
  * POST /api/public/v1/checkout
@@ -137,6 +138,7 @@ export async function POST(req: Request) {
         customerId: customer.id,
         status: "PENDING",
         paymentStatus: "PENDING",
+        paymentMethod: data.paymentMethod ?? "COD",
         currency: store?.currency ?? "USD",
         subtotal,
         taxAmount,
@@ -192,6 +194,38 @@ export async function POST(req: Request) {
     return created;
   });
 
+  // ── Provider-aware checkoutUrl ──
+  // COD goes straight through (no payment URL needed). For everything else,
+  // try to create a hosted-checkout redirect. If the provider isn't configured
+  // we still return the order — admin can mark it paid manually.
+  let checkoutUrl: string | null = null;
+  const method = (data.paymentMethod ?? "COD").toUpperCase();
+  if (method !== "COD") {
+    const providerKey = method === "JAZZCASH" ? "jazzcash"
+      : method === "EASYPAISA" ? "easypaisa"
+      : method === "CARD" || method === "STRIPE" ? "stripe"
+      : null;
+    const provider = providerKey ? getProvider(providerKey) : null;
+    if (provider && provider.isConfigured()) {
+      try {
+        const successUrl = `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/api/payments/return?order=${order.orderNumber}&email=${encodeURIComponent(data.customer.email)}`;
+        const cancelUrl = `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/api/payments/cancel?order=${order.orderNumber}`;
+        const session = await provider.createCheckout({
+          orderId: order.id,
+          amount: total,
+          currency: order.currency,
+          customerEmail: data.customer.email,
+          successUrl,
+          cancelUrl,
+          description: `Order ${order.orderNumber}`,
+        });
+        checkoutUrl = session.checkoutUrl;
+      } catch (e) {
+        console.warn(`[checkout] Provider ${providerKey} createCheckout failed:`, (e as Error).message);
+      }
+    }
+  }
+
   return withRateHeaders(
     NextResponse.json(
       {
@@ -199,14 +233,14 @@ export async function POST(req: Request) {
         id: order.id,
         status: order.status,
         paymentStatus: order.paymentStatus,
+        paymentMethod: order.paymentMethod,
         currency: order.currency,
         subtotal,
         taxAmount,
         shippingAmount,
         discountAmount,
         total,
-        // Stub — would point to Stripe Checkout in Phase 7 wired path
-        checkoutUrl: null,
+        checkoutUrl,
       },
       { status: 201 }
     ),
