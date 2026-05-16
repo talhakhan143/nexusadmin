@@ -21,7 +21,7 @@ const FALLBACK_SLIDES: ApiBanner[] = [
     subtitle: "Discover the new Mehboob collection — handcrafted in Lahore.",
     ctaText: "Discover",
     ctaUrl: "/shop",
-    image: "https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=2070",
+    image: "https://images.unsplash.com/photo-1594035910387-fea47794261f?q=80&w=2070",
     imageMobile: null,
     alt: "Perfume bottle",
     bgColor: null,

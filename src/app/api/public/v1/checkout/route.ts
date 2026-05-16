@@ -4,6 +4,7 @@ import { verifyApiKey, withRateHeaders } from "@/server/api-auth";
 import { checkoutSchema } from "@/lib/validations/checkout";
 import { generateOrderNumber } from "@/lib/utils";
 import { getProvider } from "@/server/payments";
+import { sendOrderConfirmation, sendNewOrderAlert } from "@/lib/email/order-emails";
 
 /**
  * POST /api/public/v1/checkout
@@ -193,6 +194,48 @@ export async function POST(req: Request) {
     }
     return created;
   });
+
+  // ── Email notifications (fire-and-forget — don't block response) ──
+  const emailPayload = {
+    orderNumber: order.orderNumber,
+    customerName: data.customer.name ?? null,
+    customerEmail: data.customer.email,
+    customerPhone: data.customer.phone ?? null,
+    items: data.items.map((item) => {
+      const v = byId.get(item.variantId)!;
+      const optStr = v.options.map((o) => `${o.name}: ${o.value}`).join(", ");
+      return {
+        name: v.product.name,
+        variantName: v.name ?? optStr,
+        quantity: item.quantity,
+        unitPrice: v.price,
+        total: v.price * item.quantity,
+      };
+    }),
+    subtotal,
+    shippingAmount,
+    discountAmount,
+    taxAmount,
+    total,
+    currency: order.currency,
+    paymentMethod: order.paymentMethod ?? "COD",
+    shippingAddress: {
+      line1: data.shippingAddress.line1,
+      line2: data.shippingAddress.line2 ?? null,
+      city: data.shippingAddress.city,
+      state: data.shippingAddress.state ?? null,
+      country: data.shippingAddress.country,
+      postalCode: data.shippingAddress.postalCode,
+    },
+    notes: data.notes ?? null,
+    storeName: store?.name ?? "NexusAdmin Store",
+    trackingUrl: `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/order/${order.orderNumber}?email=${encodeURIComponent(data.customer.email)}`,
+  };
+
+  Promise.allSettled([
+    sendOrderConfirmation(emailPayload, data.customer.email),
+    store?.email ? sendNewOrderAlert(emailPayload, store.email) : Promise.resolve(),
+  ]).catch((e) => console.warn("[checkout] email dispatch failed:", e));
 
   // ── Provider-aware checkoutUrl ──
   // COD goes straight through (no payment URL needed). For everything else,

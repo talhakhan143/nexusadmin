@@ -5,9 +5,9 @@ export const SITE = {
   description:
     "Discover Pakistan's most beloved perfumes, attars, and skincare — delivered fresh from our atelier to your doorstep.",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001",
-  whatsapp: process.env.NEXT_PUBLIC_WHATSAPP ?? "+923001234567",
-  phone: "+92 300 123 4567",
-  email: "hello@noorperfumes.pk",
+  whatsapp: process.env.NEXT_PUBLIC_WHATSAPP ?? "03368469404",
+  phone: "0336 846 9404",
+  email: "mr.talha143@gmail.com",
   address: "Karachi · Lahore · Islamabad",
   social: {
     instagram: "https://instagram.com",

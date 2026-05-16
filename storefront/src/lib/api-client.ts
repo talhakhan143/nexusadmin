@@ -13,6 +13,7 @@ import type {
   ApiOrderDetail,
   ApiProductDetail,
   ApiProductListItem,
+  ApiStore,
   BannerPlacement,
 } from "@/types/api";
 
@@ -109,6 +110,12 @@ export async function listBanners(
   const qs = new URLSearchParams({ placement });
   if (customKey) qs.set("customKey", customKey);
   return get(`/banners?${qs}`, { revalidate: 30, tags: [`banners:${placement}`] });
+}
+
+// ── Store ─────────────────────────────────────────────────────────────────
+
+export async function getStore(): Promise<ApiStore> {
+  return get(`/store`, { revalidate: 300, tags: ["store"] });
 }
 
 // ── Orders ────────────────────────────────────────────────────────────────

@@ -142,6 +142,26 @@ export interface ApiCheckoutResponse {
   checkoutUrl: string | null;
 }
 
+export interface ApiStore {
+  name: string;
+  legalName: string | null;
+  email: string;
+  phone: string | null;
+  logo: string | null;
+  currency: string;
+  locale: string;
+  timezone: string;
+  country: string | null;
+  city: string | null;
+  state: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  postalCode: string | null;
+  socialInstagram: string | null;
+  socialFacebook: string | null;
+  socialTwitter: string | null;
+}
+
 export interface ApiOrderDetail {
   orderNumber: string;
   status: string;

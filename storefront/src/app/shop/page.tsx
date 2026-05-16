@@ -50,20 +50,22 @@ export default async function ShopPage({
                   All products
                 </Link>
               </li>
-              {categoriesRes.items.map((c) => (
-                <li key={c.id}>
-                  <Link
-                    href={`/shop?category=${c.slug}`}
-                    className={cn(
-                      "text-sm hover:text-accent transition-colors flex items-center justify-between",
-                      sp.category === c.slug && "font-medium text-accent"
-                    )}
-                  >
-                    {c.name}
-                    <span className="text-xs text-muted-foreground">{c._count.products}</span>
-                  </Link>
-                </li>
-              ))}
+              {categoriesRes.items
+                .filter((c) => c._count.products > 0 || sp.category === c.slug)
+                .map((c) => (
+                  <li key={c.id}>
+                    <Link
+                      href={`/shop?category=${c.slug}`}
+                      className={cn(
+                        "text-sm hover:text-accent transition-colors flex items-center justify-between",
+                        sp.category === c.slug && "font-medium text-accent"
+                      )}
+                    >
+                      {c.name}
+                      <span className="text-xs text-muted-foreground">{c._count.products}</span>
+                    </Link>
+                  </li>
+                ))}
             </ul>
           </div>
           <div>

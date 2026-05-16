@@ -3,8 +3,19 @@ import { Instagram, Facebook, Youtube, Mail, Phone, MapPin } from "lucide-react"
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SITE, FOOTER_LINKS } from "@/config/site";
+import { getStore } from "@/lib/api-client";
 
-export function Footer() {
+export async function Footer() {
+  const store = await getStore().catch(() => null);
+  const phone = store?.phone || SITE.phone;
+  const email = store?.email || SITE.email;
+  const address = store
+    ? [store.city, store.state, store.country].filter(Boolean).join(", ")
+    : SITE.address;
+  const instagram = store?.socialInstagram || SITE.social.instagram;
+  const facebook = store?.socialFacebook || SITE.social.facebook;
+  const shortName = store?.name?.split(/[—-]/)[0].trim() || SITE.shortName;
+
   return (
     <footer className="bg-primary text-primary-foreground mt-20">
       {/* Newsletter */}
@@ -31,26 +42,26 @@ export function Footer() {
       {/* Main */}
       <div className="container-tight py-14 grid grid-cols-2 md:grid-cols-5 gap-10">
         <div className="col-span-2 space-y-5">
-          <Link href="/" className="font-serif text-3xl">{SITE.shortName}</Link>
+          <Link href="/" className="font-serif text-3xl">{shortName}</Link>
           <p className="text-sm text-primary-foreground/70 max-w-xs">
             {SITE.tagline}
           </p>
           <div className="space-y-2.5 text-sm text-primary-foreground/70">
             <div className="flex items-center gap-2.5">
-              <MapPin className="h-3.5 w-3.5 text-accent" /> {SITE.address}
+              <MapPin className="h-3.5 w-3.5 text-accent" /> {address}
             </div>
-            <div className="flex items-center gap-2.5">
-              <Phone className="h-3.5 w-3.5 text-accent" /> {SITE.phone}
-            </div>
-            <div className="flex items-center gap-2.5">
-              <Mail className="h-3.5 w-3.5 text-accent" /> {SITE.email}
-            </div>
+            <a href={`tel:${phone.replace(/\s/g, "")}`} className="flex items-center gap-2.5 hover:text-primary-foreground transition-colors">
+              <Phone className="h-3.5 w-3.5 text-accent" /> {phone}
+            </a>
+            <a href={`mailto:${email}`} className="flex items-center gap-2.5 hover:text-primary-foreground transition-colors">
+              <Mail className="h-3.5 w-3.5 text-accent" /> {email}
+            </a>
           </div>
           <div className="flex items-center gap-3 pt-2">
-            <a href={SITE.social.instagram} aria-label="Instagram" className="p-2 border border-primary-foreground/30 hover:bg-accent hover:border-accent transition-colors">
+            <a href={instagram} aria-label="Instagram" className="p-2 border border-primary-foreground/30 hover:bg-accent hover:border-accent transition-colors">
               <Instagram className="h-4 w-4" />
             </a>
-            <a href={SITE.social.facebook} aria-label="Facebook" className="p-2 border border-primary-foreground/30 hover:bg-accent hover:border-accent transition-colors">
+            <a href={facebook} aria-label="Facebook" className="p-2 border border-primary-foreground/30 hover:bg-accent hover:border-accent transition-colors">
               <Facebook className="h-4 w-4" />
             </a>
             <a href={SITE.social.youtube} aria-label="YouTube" className="p-2 border border-primary-foreground/30 hover:bg-accent hover:border-accent transition-colors">
