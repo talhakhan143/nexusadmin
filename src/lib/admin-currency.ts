@@ -43,10 +43,12 @@ export function formatMinor(minor: number, currency: string): string {
   return `${symbol} ${formatted}`;
 }
 
-/** Calculate compareAtPrice from basePrice + discount percentage. */
+/** Calculate compareAtPrice from basePrice + discount percentage. Rounds to a clean major unit (whole rupee). */
 export function compareAtFromDiscount(basePriceMinor: number, percentOff: number): number {
   if (percentOff <= 0 || percentOff >= 100) return 0;
-  return Math.round(basePriceMinor / (1 - percentOff / 100));
+  const raw = basePriceMinor / (1 - percentOff / 100);
+  // Round to nearest whole major unit so the displayed price has no fractional paise.
+  return Math.round(raw / 100) * 100;
 }
 
 /** Calculate discount percentage from compareAt + base. */
